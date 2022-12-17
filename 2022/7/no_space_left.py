@@ -1,5 +1,5 @@
 import sys
-from anytree import Node, search, PreOrderIter, PostOrderIter, Walker
+from anytree import Node, search, PreOrderIter, PostOrderIter, Walker, RenderTree
 
 def get_item(name, type, t):
   for i in t:
@@ -36,17 +36,30 @@ def main():
       
       else:
         Node(parts[1], parent=curr_node, type="file", size=int(parts[0]))
+        root.size = root.size + int(parts[0])
         # need to walk up the tree adding to size
         w = Walker()
-        for n in w.walk(curr_node, root):
-          print(n)
-          if isinstance(n, Node):
-            n.size = n.size + int(parts[0])
-          else:
-            n[0].size = n[0].size + int(parts[0])
+        path = w.walk(curr_node, root)
+        for n in path[0]:
+          n.size = n.size + int(parts[0])
 
+  ans_one = 0
+  ans_two = 100000000
+  free_space = 70000000 - root.size
+  space_needed = 30000000 - free_space
   for node in PreOrderIter(root):
-    print(f"{node.name},{node.type},{node.size}")
+    if node.type == "dir":
+      if node.size <= 100000:
+        ans_one = ans_one + node.size
+      if node.size >= space_needed:
+        if node.size < ans_two:
+          ans_two = node.size
+
+  print(f"Part 1 answer: {ans_one}")
+  print(f"Part 2 answer: {ans_two}")
+
+
+  
 
 if __name__ == "__main__":
   main()
