@@ -3,11 +3,18 @@ import sys
 from typing import List
 
 
+card_map = {}
+cards = []
+count = 0
+
 class Card:
     def __init__(self, card_no: int, matching_numbers: List[int]):
         self.card_no = card_no
         self.matching_numbers = matching_numbers
         self.num_matches = len(matching_numbers)
+
+    def __repr__(self):
+        return f"card: {self.card_no}, {self.num_matches}"
 
 def card_from_line(card_line: str):
     [card_desc, numbers] = card_line.rstrip().split(": ")
@@ -18,32 +25,38 @@ def card_from_line(card_line: str):
     return Card(card_no, matching_numbers)
 
 def calc_winnings(matches: List[int]):
-    print(matches)
     if len(matches) == 0:
         return 0
     if len(matches) == 1:
-        print(1)
         return 1
     return pow(2, (len(matches)-1))
 
+def process_cards(cards: List[Card]):
+    result = 0
+    for c in cards:
+        copies = [card_map[i] for i in range(c.card_no+1, c.card_no+1 + c.num_matches) if i < len(list(card_map))]
+        result = result + process_cards(copies)
+    return len(cards) + result
+
+def process_card(card: Card):
+    global count
+    count = count+1
+    global cards
+    copies = [card_map[i] for i in range(card.card_no+1, card.card_no+1 + card.num_matches) if i < len(list(card_map))+1]
+    cards = cards + copies
+
 def solution(input_file_path: str):
-    card_map = {}
-    cards = []
+    global count
     with open(input_file_path, "r") as input:
         for line in input:
             card = card_from_line(line)
-            card_map[card.card_no] = 1
+            card_map[card.card_no] = card 
             cards.append(card)
 
-    for c in cards:
-        for i in range(c.card_no+1, c.card_no + c.num_matches):
-            card_map[i] = card_map[i]+1
+    while len(cards) > 0:
+        process_card(cards.pop())
 
-    print(card_map)
-            
-    
-
-
+    print(count)
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
