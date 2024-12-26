@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -6,17 +8,56 @@
 #include <utility>
 #include <vector>
 
-bool validate_update(std::vector<std::string> update, const std::map<std::string, std::string> &ordering_map) {
 
+struct update_order {
+    std::vector<int> before;
+    std::vector<int> after;
+};
+
+std::map<int, update_order> order_map;
+
+
+bool validate_update(const std::vector<int> &update, const std::map<int, update_order> &order_map) {
+    for (int i = 0; i < update.size(); i++) {
+        try {
+            update_order uo = order_map.at(update[i]);
+            for (int j = i+1; j < update.size(); j++) {
+                if (std::find(uo.before.begin(), uo.before.end(), update[j]) != uo.before.end()) {
+                    continue;
+                }
+                return false;
+            }
+        }
+        catch(const std::out_of_range& ex) {
+            std::cout << update[i] << " not found" << std::endl;
+        }
+    }
+    std::vector<int> update_ = update;
+    std::reverse(update_.begin(), update_.end());
+    for (int i = 0; i < update_.size(); i++) {
+        try {
+            update_order uo = order_map.at(update_[i]);
+            for (int j = i+1; j < update_.size(); j++) {
+                if (std::find(uo.after.begin(), uo.after.end(), update_[j]) != uo.after.end()) {
+                    continue;
+                }
+                return false;
+            }
+        }
+        catch(const std::out_of_range& ex) {
+            std::cout << update_[i] << " not found" << std::endl;
+        }
+    }
+
+    return true;
 }
 
 int main(int argc, char** argv) {
-    std::ifstream input("test_input.txt");
+    std::ifstream input("input.txt");
     
     std::string line;
-    std::vector<std::string> ordering_segs;
-    std::map<std::string, std::string> ordering_map;
-    std::vector<std::vector<std::string>> update_segs;
+    std::vector<std::vector<int>> updates;
+    std::vector<std::vector<int>> valid_updates;
     bool ordering = true;
     while (std::getline(input, line)) {
         std::string seg;
@@ -26,20 +67,47 @@ int main(int argc, char** argv) {
         }
 
         if (ordering) {
+            std::vector<int> ordering_segs;
             while (std::getline(line_stream, seg, '|')) {
-                ordering_segs.push_back(seg);
+                ordering_segs.push_back(std::stoi(seg));
             }
-            ordering_map = {ordering_segs[0], ordering_segs[1]};
+            int key = ordering_segs[0];
+            int value = ordering_segs[1];
+            // Before
+            if (order_map.find(key) != order_map.end()) {
+                order_map[key].before.push_back(value);
+            } else {
+                order_map[key] = {
+                    {value},
+                    {}
+                };
+            }
+            // After
+            if (order_map.find(value) != order_map.end()) {
+                order_map[value].after.push_back(key);
+            } else {
+                order_map[value] = {
+                    {},
+                    {key}
+                };
+            }
+        } else if (line.size() == 0) {
+            continue;
         } else {
-            std::vector<std::string> update;
+            std::vector<int> update;
             while (std::getline(line_stream, seg, ',')) {
-                update.push_back(seg);
+                update.push_back(std::stoi(seg));
             }
-            update_segs.push_back(update);
+            updates.push_back(update);
         }
     }
-
-    for (std::vector<std::string> update : update_segs) {
-
+    int mid_sum = 0;
+    for (std::vector<int> update : updates) {
+        if (validate_update(update, order_map)) {
+            valid_updates.push_back(update);
+            int mid = update[std::ceil(update.size()/2)];
+            mid_sum += mid;
+        }
     }
+     std::cout << mid_sum << std::endl;
 }
